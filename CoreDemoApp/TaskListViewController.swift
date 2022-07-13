@@ -6,14 +6,30 @@
 //
 
 import UIKit
+import CoreData
+
+protocol TaskViewControllerDelegate {
+    func reloadData()
+}
 
 class TaskListViewController: UITableViewController {
+    
+    private let viewContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+
+    
+    private var taskList: [Task] = []
+    private let cellID = "task"
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
+        
         view.backgroundColor = .white
         
         setupNavigationBar()
+        
+        fetchData()
     }
 
     // MARK: - Navigation Bar Setup
@@ -46,7 +62,40 @@ class TaskListViewController: UITableViewController {
     
     @objc private func addNewTask() {
          let taskVC = TaskViewController()
+        taskVC.delegate = self
         present(taskVC, animated: true)
+    }
+    
+    private func fetchData() {
+        let fetchRequest = Task.fetchRequest()
+        do {
+            taskList = try viewContext.fetch(fetchRequest)
+        } catch {
+            print(error.localizedDescription)
+        }
     }
 }
 
+extension TaskListViewController: TaskViewControllerDelegate {
+    func reloadData() {
+        fetchData()
+        tableView.reloadData()
+    }
+}
+
+extension TaskListViewController {
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        taskList.count
+    }
+    
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
+        let task = taskList[indexPath.row]
+        
+        var content = cell.defaultContentConfiguration()
+        content.text = task.tittle
+        cell.contentConfiguration = content
+        
+        return cell
+    }
+}
